@@ -1,0 +1,12 @@
+a="hi"
+print(a)
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+%matplotlib inline
+x = np.linspace(0, 10, 100) #returns evenly spaced numbers over some interval
+print(x)
+fig = plt.figure()
+plt.plot(x, np.sin(x), '.')
+plt.plot(x, np.cos(x), '--');
+plt.legend(['Sin', 'Cos'])
