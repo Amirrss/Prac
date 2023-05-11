@@ -1,0 +1,9 @@
+import numpy as np
+Q = np.matrix([[0,1,0],[0,0.1,0.9],[0.6,0.4,0]])
+S_initial = np.matrix([[0.3, 0.4 , 0.3]])
+epsilon = 1
+while epsilon > 10e-8:
+    S_next = np.dot(S_initial, Q)
+    epsilon = np.sqrt(np.sum(np.square(S_next - S_initial)))
+    S_initial = S_next
+print(S_initial)
