@@ -1,0 +1,62 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.gridspec as gridspec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+data = np.load("/Users/amrr/Desktop/Training_data /Baseline_Design /Npz_files /S2_07092020_train_spec0.0_latest.npz")['arr_0']
+
+for i in range(0, 11, 1):
+    print(i)
+    event = data[i]
+    count = event[2:]
+
+    n_per_row = [9, 14, 17, 20, 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 31, 32, 33, 32, 33, 32, 33, 32, 31, 32, 31, 30, 29, 28, 27, 26, 25, 24, 21, 20, 17, 14, 9]
+    n_row = len(n_per_row)
+    step = 81.0  # mm
+    Rpmt = 32.5  # mm R = 64./2 + .5mm slack
+
+    x_firsts = [-324., -526.5, -648., -769.5, -810., -931.5, -972., -1012.5, -1053., -1093.5, -1134., -1174.5, -1215., -1255.5, -1215., -1255.5, -1296., -1255.5, -1296., -1255.5, -1296., -1255.5, -1215., -1255.5, -1215., -1174.5, -1134., -1093.5, -1053., -1012.5, -972., -931.5, -810., -769.5, -648., -526.5, -324.]
+    y_firsts = [1262.67, 1192.52, 1122.37, 1052.22, 982.073, 911.925, 841.777, 771.629, 701.481, 631.333, 561.185, 491.037, 420.889, 350.741, 280.592, 210.444, 140.296, 70.1481, 0., -70.1481, -140.296, -210.444, -280.592, -350.741, -420.889, -491.037, -561.185, -631.333, -701.481, -771.629, -841.777, -911.925, -982.073, -1052.22, -1122.37, -1192.52, -1262.67]
+
+    pmt_x_centers = []
+    pmt_y_centers = []
+
+    print(f"For event #{i} N_pe^i_old / N_gamma_old =",R[i])
+    
+    for i in range(0, n_row):
+        for j in range(0, n_per_row[i]):
+            x_centers = x_firsts[i] + j * step
+            y_centers = y_firsts[i]
+            pmt_x_centers.append(x_centers)
+            pmt_y_centers.append(y_centers)
+
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot()
+
+    gs = gridspec.GridSpec(2, 1, height_ratios=[5, 1])
+
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+
+    dif = ax1.scatter(pmt_x_centers, pmt_y_centers, c=count, marker='.', cmap='viridis_r',
+                      norm=colors.Normalize(vmin=min(count), vmax=max(count)))
+    ax2.plot(count)
+
+    ax1.set_xlabel('Hit X position (mm)')
+    ax1.set_ylabel('Hit Y position (mm)')
+
+    ax2.set_xlabel('PMT number')
+    ax2.set_ylabel('Hit counts')
+
+    for v in range(len(count)):
+        ax1.text(pmt_x_centers[v], pmt_y_centers[v], str(int(count[v])), fontsize=6)
+
+    
+
+    divider = make_axes_locatable(ax1)
+    fig.colorbar(dif, cax=None, ax=[ax1, ax2], orientation='vertical', fraction=0.05)
+    
+    
+    plt.show()
+    
