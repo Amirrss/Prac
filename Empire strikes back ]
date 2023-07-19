@@ -1,0 +1,165 @@
+#loading the npz file containing the simulated photon hits 
+import numpy as np 
+def_design=np.load("/Users/amrr/Desktop/Training_data /Baseline_Design /Npz_files /S2_07092020_train_spec0.0_latest.npz")
+original_arrays=def_design['arr_0'] #"array" contains inu turn a million arrays which are the result of the simulation that simulates PMT hits  
+arr_0=original_arrays[0] #each of this million arrays is an array of lenght 955+2(955 PMTS + 2 X-Y position co-ordinates ) 
+#print(len(original_arrays))  #an array of length million for million simulations 
+
+
+
+#We are interested in WIMP based scatterings of a particular Mass of Wimp(50Gev), and will accordingly adjust the required no.of photons here for that specific interaction only.
+#We have essentially simulated 10k photons per event [and there are a million such events,each event stored as an array]
+#Due to the phyical parameters of the actual detector,like detection effciency and the shape, not all of the 10k photons get detected, abstracting out the those details , we do however know exactly the #photons detected per event and we have also ascertained the no.of S2 photons that must be detected ideally for 50 Gev Mass WIMP to be 2775
+#In order to manipulate the event array for specific WIMP particle , we will constraint the no. of photons per event such that they only correspond to WIMP scatterings by multiplying the no.of photons/total no. of photons simulated by the ideal case , i.e 2775 and hence get a new constrainted no.of photons per event that only correspond to WIMP scatterings (#Photons_ideal*#Photons_old/10000=#Photons_WimpScattering)
+
+
+#Creating an array to store the total no.of S2 photons as observed by the PMTS 
+sum_array = np.array([np.sum(arr[2:]) for arr in original_arrays]) # The first two indices are reserved for reconstructed X-Y position co-ordinates and the rest for photon hits
+print((sum_array)) #returns a million indices,as we a have million simulated hits 
+np.save('sum_arr.npy', sum_array)
+#Max_value=np.max(sum_array)
+#Min_value=np.min(sum_array)
+#print(Max_value)
+#print(Min_value)  
+
+#Modifying the sum array for WIMPS (#Photons_ideal*#Photons_old/10000=#Photons_WimpScattering)
+
+ideal_photons=2775 #Can be changed for other masses , this number is for 50Gev WIMP
+sum_arr_wimp=(sum_array/10000)*ideal_photons
+sum_arr_wimp_rounded=np.round(sum_arr_wimp)# Rounding to the #photons to integers,acheiving the desired sum is not possible otherwise as the data has integers (except for coordinates )
+sum_arr_wimp=sum_arr_wimp_rounded 
+#print((sum_arr_wimp))
+#Min_value_wimp=np.min(sum_arr_wimp)
+#Max_value_wimp=np.max(sum_arr_wimp)
+#print(Min_value_wimp)
+#print(Max_value_wimp)
+
+#where1=np.where(sum_array==Min_value)
+#where2=np.where(sum_arr_wimp==Min_value_wimp)
+#print(where1)
+#print(where2)
+#sum_of_sum=np.sum(sum_arr_wimp)
+#avg=sum_of_sum/1000000
+#print(avg)
+#print(len(sum_arr_wimp))
+
+
+
+
+# an array to store indices of original_array
+original_arrays_indices=np.arange(0,len(original_arrays))
+#print(original_arrays_indices)
+
+
+
+import numpy as np
+import time
+from datetime import datetime
+
+# Final algorithm
+# Manipulating the data, we essentially split the data into binary by splitting any value greater than one into corresponding ones
+# and then randomly delete values until the desired sum is reached and add back the remaining values back into the same array.
+
+# Iterate over the indices in original_arrays_indices
+for i, index in enumerate(original_arrays_indices):
+    
+    # Print the index being checked
+    #print("Checking array #:", index)
+
+    # Get the array from original_arrays_filtered
+    arr = original_arrays[index]
+    arr_pos = arr[0:2]  # Stores the position coordinates
+    arr = arr[2:].astype(int)  # Converting hits to integers
+
+    # These empty lists will be used to store the values from the loop.
+    binary_arr = []  # Stores the original ones and zeroes and the split values
+    split_indices = []  # Stores the indices of the binary array where an original value from input array was split
+    extended_lengths = []  # Stores the length by which the binary array extended for a given value greater than one
+
+    suitable_sum = int(sum_arr_wimp[index])  # Returns the sum of photon hits required for a given array
+
+    # Splitting values
+    for idx, val in enumerate(arr):
+        if val > 1:
+            split_indices.append(len(binary_arr))
+            extended_length = int(val)
+            binary_arr.extend([1] * extended_length)
+            extended_lengths.append(extended_length)  # Any value greater than one gets split
+        elif val == 1:
+            binary_arr.append(1)
+        else:
+            binary_arr.append(0)
+
+    binary_arr = np.array(binary_arr)  # Converting to arrays
+    split_indices = np.array(split_indices)
+
+    # Calculate the sum of the array
+    sum = np.sum(binary_arr)
+
+    # Randomly delete ones until suitable sum is reached
+    while sum > suitable_sum:
+        delete_indices = np.where((binary_arr == 1))[0]  # Accessing values whenever the 'where' condition is true
+        delete_index = np.random.choice(delete_indices)  # Randomly deleting values
+        binary_arr[delete_index] = 0  # Assigning zeroes to deleted values to maintain the shape of the array
+        sum -= 1
+
+    # Recombine the values
+
+    # Execute this algorithm for the last value in the split_indices array,
+    # the last value is either the last value in the input array or the last value before a sea of ones and zeroes.
+    # Check what is the last value in the input array
+    last_index_arr = len(arr) - 1
+
+    # If the last is either 1 or zero, calculate how many ones and zeroes are there before a value greater than 1 is encountered
+    if arr[last_index_arr] == 1 or arr[last_index_arr] == 0:
+        # The calculation mentioned above
+        for j in range(len(arr) - 1, -1, -1):
+            if arr[j] > 1:
+                index = j
+                break
+        original_val = arr[index]
+        last_index = len(split_indices) - 1  # Last index of split indices
+        sum_rem_indices = np.sum(binary_arr[int(split_indices[last_index]):int(split_indices[last_index] + original_val)])
+        binary_arr[int(split_indices[last_index])] = sum_rem_indices
+        binary_arr_end = np.delete(binary_arr, np.arange(int(split_indices[last_index] + 1), int(split_indices[last_index] + original_val), dtype=int))
+    else:
+        # Last index in the split indices is the last in the array as well
+        last_index = len(split_indices) - 1
+        original_val = arr[-1]
+        sum_rem_indices = np.sum(binary_arr[int(split_indices[last_index]):int(split_indices[last_index] + original_val)])
+        binary_arr[int(split_indices[last_index])] = sum_rem_indices
+        binary_arr_end = np.delete(binary_arr, np.arange(int(split_indices[last_index] + 1), int(split_indices[last_index] + original_val), dtype=int))
+
+    # Algorithm for the rest of the elements
+    deleted_indices_list = []  # Create an empty list for storing the indices to be deleted
+
+    for j in range(0, len(split_indices) - 1):  # Skipping the last index as it's been processed already from above
+        original_val = extended_lengths[j]  # The extended lengths array maps the split indices with original values in the input
+        sum_rem_indices = np.sum(binary_arr_end[split_indices[j]:split_indices[j] + original_val])
+        binary_arr_end[split_indices[j]] = sum_rem_indices
+        indices_to_be_deleted = np.arange(split_indices[j] + 1, split_indices[j] + original_val)
+        # Store the values in the list
+        deleted_indices_list.extend(indices_to_be_deleted)
+
+    deleted_indices = np.array(deleted_indices_list)  # Convert to an array
+    binary_arr_middle = np.delete(binary_arr_end, deleted_indices, axis=0)
+    manipulated_arr = binary_arr_middle
+    manipulated_arr_final = np.concatenate((arr_pos, manipulated_arr))
+    #print(len(manipulated_arr_final))
+    sum=np.sum(manipulated_arr_final[2:])
+    #print(f"The sum for {i} array is {sum}")
+    original_arrays[i] = manipulated_arr_final
+
+    # Print progress after processing each 10,000 indices
+    if (i + 1) % 10000 == 0:
+        print("Processed", i + 1, "indices")
+
+    # Pause for 2s after processing each 1,000 indices
+    if (i + 1) % 10000 == 0:
+        print("Taking a break for 2 secs ...")
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print("Current time:", current_time)
+        time.sleep(2)  # 60 seconds = 1 minute
+
+
+print("Manipulation Done")
