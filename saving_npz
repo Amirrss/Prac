@@ -1,0 +1,17 @@
+import os
+import numpy as np
+
+# Create a new dictionary to store the modified array
+new_def_design = {'arr_0': original_arrays}
+
+# Specify the folder name
+folder_name = "Modified_Npz_Files_prototype_real"
+
+# Create the folder on the desktop
+desktop_path = os.path.expanduser("~/Desktop")
+folder_path = os.path.join(desktop_path, folder_name)
+os.makedirs(folder_path, exist_ok=True)
+
+# Save the modified array as an npz file in the new folder
+file_path = os.path.join(folder_path, "S2_07092020_train_spec0.0_modified.npz")
+np.savez(file_path, **new_def_design)
